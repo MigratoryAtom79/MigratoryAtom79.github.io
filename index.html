@@ -4,115 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portfolio Directory Hub</title>
-  <style>
-    :root {
-      --bg: #0d1117;
-      --card-bg: #161b22;
-      --border: #30363d;
-      --text: #c9d1d9;
-      --text-muted: #8b949e;
-      --accent: #58a6ff;
-      --accent-hover: #79c0ff;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      padding: 2rem;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-
-    header {
-      margin-bottom: 2.5rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 1.5rem;
-    }
-
-    h1 {
-      font-size: 2rem;
-      color: #fff;
-      margin-bottom: 0.5rem;
-    }
-
-    p.subtitle {
-      color: var(--text-muted);
-      font-size: 1rem;
-    }
-
-    .project-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 1.25rem;
-      margin-top: 1.5rem;
-    }
-
-    .card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      transition: transform 0.2s ease, border-color 0.2s ease;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      text-decoration: none;
-      color: inherit;
-    }
-
-    .card:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent);
-    }
-
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 0.5rem;
-      word-break: break-word;
-    }
-
-    .card-path {
-      font-family: monospace;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    .status-msg {
-      padding: 1rem;
-      color: var(--text-muted);
-      font-style: italic;
-    }
-
-    #error-box {
-      display: none;
-      background-color: rgba(248, 81, 73, 0.1);
-      border: 1px solid #f85149;
-      color: #f85149;
-      padding: 1rem;
-      border-radius: 6px;
-      margin-bottom: 1.5rem;
-      font-size: 0.9rem;
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Include Marked.js parser library -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
   <header>
     <h1 id="repo-title">Portfolio Projects</h1>
-    <p class="subtitle">An automated directory index powered by the GitHub API</p>
   </header>
 
   <div id="error-box"></div>
+
+  <!-- README Section -->
+  <section id="readme-section" style="display: none; margin-bottom: 2.5rem;">
+    <div id="readme-content" class="markdown-body"></div>
+  </section>
 
   <section>
     <h2>Directories & Demos</h2>
@@ -121,137 +28,6 @@
     </div>
   </section>
 
-  <script>
-    // Extract GitHub user and repository name from URL
-    const host = window.location.hostname; // e.g., username.github.io
-    const pathSegments = window.location.pathname.split('/').filter(Boolean);
-
-    const username = host.includes('github.io') ? host.split('.')[0] : pathSegments[0];
-    const repoName = pathSegments.length > 0 ? pathSegments[0] : `${username}.github.io`;
-
-    // Repositories to check: current repo & user's profile repo (username/username)
-    const reposToScan = Array.from(new Set([repoName, username]));
-
-    document.getElementById('repo-title').textContent = `${username}'s Project Index`;
-
-    const errorBox = document.getElementById('error-box');
-    const grid = document.getElementById('grid');
-
-    async function loadDirectories() {
-      try {
-        let allDiscoveredProjects = [];
-
-        for (const repo of reposToScan) {
-          const apiUrl = `https://api.github.com/repos/${username}/${repo}/contents`;
-          const response = await fetch(apiUrl);
-
-          if (!response.ok) {
-            if (response.status === 403) {
-              throw new Error("GitHub API rate limit reached. Please wait a few minutes and refresh.");
-            }
-            continue;
-          }
-
-          const items = await response.json();
-          const directories = items.filter(item => item.type === 'dir' && !item.name.startsWith('.'));
-
-          // Check each project directory concurrently
-          const projectChecks = await Promise.all(
-            directories.map(async (dir) => {
-              const htmlPath = await findHtmlFile(repo, dir.path);
-              if (htmlPath) {
-                return {
-                  name: dir.name,
-                  repo: repo,
-                  path: `${dir.path}/${htmlPath}`
-                };
-              }
-              return null;
-            })
-          );
-
-          allDiscoveredProjects.push(...projectChecks.filter(Boolean));
-        }
-
-        if (allDiscoveredProjects.length === 0) {
-          grid.innerHTML = `<div class="status-msg">No project directories containing HTML files were found.</div>`;
-          return;
-        }
-
-        grid.innerHTML = ''; // Clear status message
-
-        allDiscoveredProjects.forEach(project => {
-          const targetUrl = project.repo === repoName 
-            ? `./${project.path}` 
-            : `https://${username}.github.io/${project.repo}/${project.path}`;
-
-          renderCard(project.name, targetUrl, `${project.repo}/${project.path}`);
-        });
-
-      } catch (err) {
-        grid.innerHTML = '';
-        errorBox.style.display = 'block';
-        errorBox.textContent = err.message;
-      }
-    }
-
-    // Recursively scans a folder for index.html or any .html file
-    async function findHtmlFile(repo, dirPath) {
-      try {
-        const url = `https://api.github.com/repos/${username}/${repo}/contents/${dirPath}`;
-        const res = await fetch(url);
-        if (!res.ok) return null;
-
-        const files = await res.json();
-
-        // 1. Check for index.html in current folder (Project2 style)
-        const directIndex = files.find(f => f.type === 'file' && f.name.toLowerCase() === 'index.html');
-        if (directIndex) return directIndex.name;
-
-        // 2. Check for any .html file directly in folder
-        const directHtml = files.find(f => f.type === 'file' && f.name.toLowerCase().endsWith('.html'));
-        if (directHtml) return directHtml.name;
-
-        // 3. Scan subdirectories (like "html/" in Project1)
-        const subDirs = files.filter(f => f.type === 'dir' && !f.name.startsWith('.'));
-        for (const subDir of subDirs) {
-          const subUrl = `https://api.github.com/repos/${username}/${repo}/contents/${dirPath}/${subDir.name}`;
-          const subRes = await fetch(subUrl);
-          if (subRes.ok) {
-            const subFiles = await subRes.json();
-            const subIndex = subFiles.find(f => f.type === 'file' && f.name.toLowerCase() === 'index.html') 
-                          || subFiles.find(f => f.type === 'file' && f.name.toLowerCase().endsWith('.html'));
-            if (subIndex) {
-              return `${subDir.name}/${subIndex.name}`;
-            }
-          }
-        }
-
-        return null;
-      } catch {
-        return null;
-      }
-    }
-
-    function renderCard(name, targetUrl, displayPath) {
-      const card = document.createElement('a');
-      card.className = 'card';
-      card.href = targetUrl;
-
-      const cleanName = name
-        .replace(/[-_]/g, ' ')
-        .replace(/\b\w/g, char => char.toUpperCase());
-
-      card.innerHTML = `
-        <div>
-          <div class="card-title">${cleanName}</div>
-          <div class="card-path">/${displayPath}</div>
-        </div>
-      `;
-      grid.appendChild(card);
-    }
-
-    loadDirectories();
-  </script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

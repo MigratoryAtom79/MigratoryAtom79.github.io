@@ -155,6 +155,24 @@ async function renderReadme() {
     }
 }
 
+function calculateAge(birthday) {
+    const birthDate = new Date(birthday);
+    const ageDifMs = Date.now() - birthDate.getTime();
+    
+    // Average length of a Gregorian year in milliseconds (365.2425 days)
+    const msPerYear = 31556952000; 
+    const ageInYears = ageDifMs / msPerYear;
+    
+    return ageInYears.toFixed(15);
+}
+
+function renderAge() {
+    const ageTitle = document.getElementById('age-title');
+    ageTitle.innerHTML = `I am ${calculateAge("2012-03-15")} yo`;
+}
+
 // Execute directory scanner and README rendering
 loadDirectories();
 renderReadme();
+
+setInterval(renderAge, 50);

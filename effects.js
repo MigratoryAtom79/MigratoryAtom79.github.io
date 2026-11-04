@@ -1,10 +1,10 @@
-// Subtle visual effects: ASCII fluid background, cursor glow, scroll reveals.
+// Sbtle visual effects: ASCII fluid background, cursor glow, scroll reveals.
 (() => {
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
     const hasHover = window.matchMedia("(hover: hover)").matches;
 
     /* ---------------- Scroll reveal ---------------- */
-    if (!reduceMotion && "IntersectionObserver" in window) {
+    if ("IntersectionObserver" in window) {
         const targets = document.querySelectorAll(
             "header, #readme-section, section:not(#readme-section) > h2, .toolbar"
         );
@@ -243,7 +243,7 @@
             levels = new Uint8Array(size);
         }
 
-        if (reduceMotion) draw();
+        draw();
     }
 
     /* ---- Drawing ---- */
@@ -288,7 +288,7 @@
     let glow = null;
     let gx = 0, gy = 0;
 
-    if (!reduceMotion && hasHover) {
+    if (hasHover) {
         glow = document.getElementById("cursor-glow");
     }
 
@@ -313,7 +313,7 @@
     }
 
     function start() {
-        if (running || reduceMotion) return;
+        if (running) return;
         running = true;
         requestAnimationFrame(frame);
     }
@@ -325,7 +325,7 @@
         mouse.x = event.clientX;
         mouse.y = event.clientY;
         if (glow) glow.classList.add("on");
-        if (reduceMotion || !d) return;
+        if (!d) return;
 
         if (lastX !== null) {
             // Stir the fluid along the direction the cursor moved.
@@ -358,7 +358,7 @@
 
     // Click: a small burst that pushes outward from the cursor.
     window.addEventListener("pointerdown", event => {
-        if (reduceMotion || !d) return;
+        if (!d) return;
 
         const cx = event.clientX / cw + 0.5;
         const cy = event.clientY / ch + 0.5;

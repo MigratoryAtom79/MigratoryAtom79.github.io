@@ -14,9 +14,6 @@ const listBtn = document.getElementById("view-list");
 const API_BASE = `https://api.github.com`;
 const RAW_BASE = `https://raw.githubusercontent.com`;
 
-const prefersReducedMotion =
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 // All discovered projects (unfiltered) and what is currently displayed.
 let allProjects = [];
 let visibleProjects = [];
@@ -32,10 +29,6 @@ function storageSet(key, value) {
 
 
 function typeTitle(text) {
-    if (prefersReducedMotion) {
-        titleEl.textContent = text;
-        return;
-    }
 
     titleEl.textContent = "";
     titleEl.classList.add("typing");
@@ -455,8 +448,7 @@ function renderCards() {
     visibleProjects.forEach((project, i) => {
         const card = renderCard(project);
         // Staggered fade-in.
-        setTimeout(() => card.classList.add("visible"),
-            prefersReducedMotion ? 0 : Math.min(i * 40, 400));
+        setTimeout(() => card.classList.add("visible"), Math.min(i * 40, 400));
     });
 }
 
@@ -497,7 +489,6 @@ function renderCard(project) {
 
 // Cursor spotlight + subtle 3D tilt.
 function attachCardEffects(card) {
-    if (prefersReducedMotion) return;
 
     card.addEventListener("mousemove", event => {
         const rect = card.getBoundingClientRect();
@@ -638,7 +629,7 @@ surpriseBtn.addEventListener("click", () => {
     const card = [...grid.querySelectorAll(".card")]
         .find(c => c.dataset.key === pick.displayPath);
 
-    if (card && !prefersReducedMotion) {
+    if (card) {
         card.scrollIntoView({ behavior: "smooth", block: "center" });
         card.classList.add("flash");
         setTimeout(() => { window.location.href = pick.url; }, 900);
@@ -772,12 +763,7 @@ if (savedSort && [...sortSelect.options].some(o => o.value === savedSort)) {
 setView(storageGet("view") === "list" ? "list" : "grid");
 
 renderAgeAndLocation();
-if (!prefersReducedMotion) {
-    // Fast refresh is only visible at high precision.
-    setInterval(renderAgeAndLocation, 50);
-} else {
-    setInterval(renderAgeAndLocation, 1000);
-}
+setInterval(renderAgeAndLocation, 50);
 
 
 
